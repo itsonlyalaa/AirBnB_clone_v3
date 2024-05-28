@@ -1,80 +1,74 @@
 #!/usr/bin/python3
-"""This module implement a rule that return a view"""
-from flask import jsonify, abort, request
-from models import storage
+"""Create a new view for city objects
+that handles all default RESTFul API actions"""
+
+from flask import Flask, abort, request
 from api.v1.views import app_views
-from models.city import City
+from os import name
 from models.state import State
-from flasgger.utils import swag_from
+from models.city import City
 
 
-@app_views.route("/states/<state_id>/cities", methods=["GET"],
+@app_views.route('/status/<state_id>/cities"', methods=['GET'],
                  strict_slashes=False)
-@swag_from('documentation/city/cities_by_state.yml', methods=['GET'])
-def cities_by_state(state_id):
-    """View function that return city objects by state"""
-    state = storage.get(State, state_id)
+def Get_City(state_id):
+    """Retrieves the list of all City objects of a State"""
+    obj = storage.get(State, state_id)
     if state is None:
         abort(404)
-    return jsonify([city.to_dict() for city in state.cities])
+        return jsonify([city.to_dict() for city in state.cities])
 
 
-@app_views.route("/cities/<city_id>", methods=["GET"],
+@app_views.route('/cities/<city_id>', methods=['GET'],
                  strict_slashes=False)
-@swag_from('documentation/city/get_city.yml', methods=['GET'])
-def show_city(city_id):
-    """Endpoint that return a City object"""
-    city = storage.get(City, city_id)
-    if city is None:
+def Getting_City(city_id):
+    """Updates a city object"""
+    CityObj = storage.get(City, city_id)
+    if CityObj is None:
         abort(404)
-    return jsonify(city.to_dict())
+    return jsonify(CityObj.to_dict())
 
 
-@app_views.route("/cities/<city_id>", methods=["DELETE"],
+@app_views.route('/cities/<city_id>', methods=['DELETE'],
                  strict_slashes=False)
-@swag_from('documentation/city/delete_city.yml', methods=['DELETE'])
-def delete_city(city_id):
-    """Endpoint that delete a City object"""
-    city = storage.get(City, city_id)
-    if city is None:
+def Deleting__City():
+    """to delete an city object"""
+    CityObj = storage.get(City, city_id)
+    if CityObj is None:
         abort(404)
-    city.delete()
+    storage.delete(CityObj)
     storage.save()
-    return jsonify({})
+    return jsonify({}), '200'
 
 
-@app_views.route("/states/<state_id>/cities", methods=["POST"],
+@app_views.route('/states/<state_id>/cities', methods=['POST'],
                  strict_slashes=False)
-@swag_from('documentation/city/post_city.yml', methods=['POST'])
-def insert_city(state_id):
-    """Endpoint that insert a City object"""
-    state = storage.get(State, state_id)
-    if state is None:
-        abort(404)
-    props = request.get_json()
-    if type(props) != dict:
-        abort(400, description="Not a JSON")
-    if not props.get("name"):
-        abort(400, description="Missing name")
-    new_city = City(**props)
-    new_city.state_id = state_id
-    new_city.save()
-    return jsonify(new_city.to_dict()), 201
-
-
-@app_views.route("/cities/<city_id>", methods=["PUT"],
-                 strict_slashes=False)
-@swag_from('documentation/city/put_city.yml', methods=['PUT'])
-def update_city(city_id):
-    """Endpoint that update a City object"""
-    city = storage.get(City, city_id)
-    if city is None:
-        abort(404)
-    props = request.get_json()
-    if type(props) != dict:
-        abort(400, description="Not a JSON")
-    for key, value in props.items():
-        if key not in ["id", "state_id", "created_at", "updated_at"]:
-            setattr(city, key, value)
+def Posting_City():
+    """Creates a City"""
+    response = request.get_json()
+    if response is None:
+        abort(400, {'Not a JSON'})
+    if "name" not in response:
+        abort(400, {'Missing name'})
+    CityObj = City(name=response['name'])
+    storage.new(CityObj)
     storage.save()
-    return jsonify(city.to_dict()), 200
+    return jsonify(CityObj.to_dict()), '201'
+
+
+@app_views.route('/states/<state_id>', methods=['PUT'],
+                 strict_slashes=False)
+def Putting():
+    """Updates a city object"""
+    response = request.get_json()
+    if response is None:
+        abort(400, {'Not a JSON'})
+    CityObj = storage.get(City, city_id)
+    if CityObj is None:
+        abort(404)
+    IgnoreKeys = ['id', 'state_id', 'created_at', 'updated_at']
+    for key in response.items():
+        if key not in IgnoreKeys:
+            setattr(CityObj, key)
+    storage.save()
+    return jsonify(CityObj.to_dict()), '200'
